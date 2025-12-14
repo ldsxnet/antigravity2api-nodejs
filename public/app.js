@@ -614,6 +614,7 @@ async function loadConfig() {
                 if (form.elements['DEFAULT_TOP_P']) form.elements['DEFAULT_TOP_P'].value = json.defaults.topP ?? '';
                 if (form.elements['DEFAULT_TOP_K']) form.elements['DEFAULT_TOP_K'].value = json.defaults.topK ?? '';
                 if (form.elements['DEFAULT_MAX_TOKENS']) form.elements['DEFAULT_MAX_TOKENS'].value = json.defaults.maxTokens ?? '';
+                if (form.elements['DEFAULT_THINKING_BUDGET']) form.elements['DEFAULT_THINKING_BUDGET'].value = json.defaults.thinkingBudget ?? '';
             }
             if (json.other) {
                 if (form.elements['TIMEOUT']) form.elements['TIMEOUT'].value = json.other.timeout ?? '';
@@ -659,6 +660,7 @@ document.getElementById('configForm').addEventListener('submit', async (e) => {
             else if (key === 'DEFAULT_TOP_P') jsonConfig.defaults.topP = parseFloat(value);
             else if (key === 'DEFAULT_TOP_K') jsonConfig.defaults.topK = parseInt(value);
             else if (key === 'DEFAULT_MAX_TOKENS') jsonConfig.defaults.maxTokens = parseInt(value);
+            else if (key === 'DEFAULT_THINKING_BUDGET') jsonConfig.defaults.thinkingBudget = parseInt(value);
             else if (key === 'USE_NATIVE_AXIOS') jsonConfig.other.useNativeAxios = value !== 'false';
             else if (key === 'TIMEOUT') jsonConfig.other.timeout = parseInt(value);
             else if (key === 'MAX_IMAGES') jsonConfig.other.maxImages = parseInt(value);

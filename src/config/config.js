@@ -45,7 +45,8 @@ const config = {
     temperature: jsonConfig.defaults?.temperature || 1,
     top_p: jsonConfig.defaults?.topP || 0.85,
     top_k: jsonConfig.defaults?.topK || 50,
-    max_tokens: jsonConfig.defaults?.maxTokens || 8096
+    max_tokens: jsonConfig.defaults?.maxTokens || 64000,
+    thinkingBudget: jsonConfig.defaults?.thinkingBudget || 1024
   },
   security: {
     maxRequestSize: jsonConfig.server?.maxRequestSize || '50mb',
@@ -60,7 +61,7 @@ const config = {
   timeout: jsonConfig.other?.timeout || 180000,
   proxy: process.env.PROXY || null,
   systemInstruction: process.env.SYSTEM_INSTRUCTION || '',
-  skipProjectIdFetch: jsonConfig.other?.skipProjectIdFetch === true
+  skipProjectIdFetch: jsonConfig.other?.skipProjectIdFetch !== false
 };
 
 log.info('✓ 配置加载成功');

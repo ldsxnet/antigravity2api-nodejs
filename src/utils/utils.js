@@ -146,7 +146,7 @@ function generateGenerationConfig(parameters, enableThinking, actualModelName){
     ],
     thinkingConfig: {
       includeThoughts: enableThinking,
-      thinkingBudget: enableThinking ? 1024 : 0
+      thinkingBudget: enableThinking ? (parameters.thinking_budget ?? config.defaults.thinkingBudget) : 0
     }
   }
   if (enableThinking && actualModelName.includes("claude")){
