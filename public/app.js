@@ -613,14 +613,14 @@ async function loadConfig() {
                 if (form.elements['DEFAULT_TEMPERATURE']) form.elements['DEFAULT_TEMPERATURE'].value = json.defaults.temperature ?? '';
                 if (form.elements['DEFAULT_TOP_P']) form.elements['DEFAULT_TOP_P'].value = json.defaults.topP ?? '';
                 if (form.elements['DEFAULT_TOP_K']) form.elements['DEFAULT_TOP_K'].value = json.defaults.topK ?? '';
-                if (form.elements['DEFAULT_MAX_TOKENS']) form.elements['DEFAULT_MAX_TOKENS'].value = json.defaults.maxTokens ?? '';
-                if (form.elements['DEFAULT_THINKING_BUDGET']) form.elements['DEFAULT_THINKING_BUDGET'].value = json.defaults.thinkingBudget ?? '';
+                if (form.elements['DEFAULT_MAX_TOKENS']) form.elements['DEFAULT_MAX_TOKENS'].value = json.defaults.maxTokens ?? 64000;
+                if (form.elements['DEFAULT_THINKING_BUDGET']) form.elements['DEFAULT_THINKING_BUDGET'].value = json.defaults.thinkingBudget ?? 1024;
             }
             if (json.other) {
                 if (form.elements['TIMEOUT']) form.elements['TIMEOUT'].value = json.other.timeout ?? '';
                 if (form.elements['MAX_IMAGES']) form.elements['MAX_IMAGES'].value = json.other.maxImages ?? '';
                 if (form.elements['USE_NATIVE_AXIOS']) form.elements['USE_NATIVE_AXIOS'].value = json.other.useNativeAxios ? 'true' : 'false';
-                if (form.elements['SKIP_PROJECT_ID_FETCH']) form.elements['SKIP_PROJECT_ID_FETCH'].value = json.other.skipProjectIdFetch ? 'true' : 'false';
+                if (form.elements['SKIP_PROJECT_ID_FETCH']) form.elements['SKIP_PROJECT_ID_FETCH'].value = json.other.skipProjectIdFetch !== false ? 'true' : 'false';
             }
         }
     } catch (error) {
