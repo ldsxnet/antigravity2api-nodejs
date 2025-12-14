@@ -46,7 +46,7 @@ const config = {
     top_p: jsonConfig.defaults?.topP || 0.85,
     top_k: jsonConfig.defaults?.topK || 50,
     max_tokens: jsonConfig.defaults?.maxTokens || 64000,
-    thinkingBudget: jsonConfig.defaults?.thinkingBudget || 1024
+    thinkingBudget: jsonConfig.defaults?.thinkingBudget || 32000
   },
   security: {
     maxRequestSize: jsonConfig.server?.maxRequestSize || '50mb',

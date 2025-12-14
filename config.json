@@ -15,11 +15,12 @@
     "temperature": 1,
     "topP": 0.85,
     "topK": 50,
-    "maxTokens": 8096
+    "maxTokens": 64000,
+    "thinkingBudget": 32000
   },
   "other": {
     "timeout": 180000,
-    "skipProjectIdFetch": false,
+    "skipProjectIdFetch": true,
     "useNativeAxios": false
   }
 }
