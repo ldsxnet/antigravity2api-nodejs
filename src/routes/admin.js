@@ -432,6 +432,16 @@ router.get('/config', cookieAuthMiddleware, (req, res) => {
   try {
     const envData = parseEnvFile(envPath);
     const jsonData = getConfigJson();
+    
+    // 补充运行时配置的默认值（如果 .env 文件中没有设置）
+    // 这样前端可以显示当前实际使用的值
+    if (!envData.SYSTEM_INSTRUCTION && config.systemInstruction) {
+      envData.SYSTEM_INSTRUCTION = config.systemInstruction;
+    }
+    if (!envData.OFFICIAL_SYSTEM_PROMPT && config.officialSystemPrompt) {
+      envData.OFFICIAL_SYSTEM_PROMPT = config.officialSystemPrompt;
+    }
+    
     res.json({ success: true, data: { env: envData, json: jsonData } });
   } catch (error) {
     logger.error('读取配置失败:', error.message);

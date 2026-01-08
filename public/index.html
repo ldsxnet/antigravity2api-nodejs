@@ -315,16 +315,36 @@ html.tab-logs .tab[data-tab="logs"] {
                                 </div>
                                 <div class="form-row-inline switch-row">
                                     <div class="form-group compact switch-group">
-                                        <label>上下文System <span class="help-tip" data-tooltip="合并开头连续的system消息到SystemInstruction">?</span></label>
+                                        <label>上下文System <span class="help-tip" data-tooltip="开启后，将用户请求的system消息追加到反代提示词后面">?</span></label>
                                         <label class="switch">
-                                            <input type="checkbox" name="USE_CONTEXT_SYSTEM_PROMPT">
+                                            <input type="checkbox" name="USE_CONTEXT_SYSTEM_PROMPT" id="useContextSystemPrompt" onchange="handleContextSystemChange()">
+                                            <span class="slider"></span>
+                                        </label>
+                                    </div>
+                                    <div class="form-group compact switch-group">
+                                        <label>合并提示词 <span class="help-tip" data-tooltip="开启后，将所有系统提示词合并为单个part（需要先开启上下文System）">?</span></label>
+                                        <label class="switch">
+                                            <input type="checkbox" name="MERGE_SYSTEM_PROMPT" id="mergeSystemPrompt" checked>
                                             <span class="slider"></span>
                                         </label>
                                     </div>
                                 </div>
+                                <div class="form-row-inline">
+                                    <div class="form-group compact">
+                                        <label>官方提示词位置 <span class="help-tip" data-tooltip="官方提示词相对于反代提示词的位置">?</span></label>
+                                        <select name="OFFICIAL_PROMPT_POSITION">
+                                            <option value="before">在反代提示词前面</option>
+                                            <option value="after">在反代提示词后面</option>
+                                        </select>
+                                    </div>
+                                </div>
                                      <div class="form-group compact">
-                                         <label>系统提示词</label>
-                                         <textarea name="SYSTEM_INSTRUCTION" rows="3" placeholder="可选的系统提示词"></textarea>
+                                         <label>反代系统提示词</label>
+                                         <textarea name="SYSTEM_INSTRUCTION" rows="3" placeholder="反代系统提示词（如萌萌）"></textarea>
+                                     </div>
+                                     <div class="form-group compact">
+                                         <label>官方系统提示词 <span class="help-tip" data-tooltip="反重力官方要求的系统提示词">?</span></label>
+                                         <textarea name="OFFICIAL_SYSTEM_PROMPT" rows="5" placeholder="官方系统提示词"></textarea>
                                      </div>
                                     </div>
 
