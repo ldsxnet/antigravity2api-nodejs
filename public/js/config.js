@@ -22,6 +22,34 @@ function restoreDefaultOfficialSystemPrompt() {
     }
 }
 
+// 暂存解锁密码
+let unlockedPassword = null;
+
+// 解锁官方系统提示词修改
+async function unlockOfficialSystemPrompt() {
+    const warningMsg = '<span style="color:#ef4444;font-weight:bold;font-size:1rem;">⚠️ 警告！修改官方系统提示词可能会导致 429 错误！<br>是否确认更改？</span>';
+    const password = await showPasswordPrompt(warningMsg);
+    
+    if (password) {
+        // 暂存密码
+        unlockedPassword = password;
+        
+        // 解锁界面
+        const textarea = document.getElementById('officialSystemPrompt');
+        const unlockBtn = document.getElementById('unlockOfficialBtn');
+        const restoreBtn = document.getElementById('restoreOfficialBtn');
+        
+        if (textarea) {
+            textarea.readOnly = false;
+            textarea.classList.add('unlocked');
+        }
+        // CSS handles lock button visibility based on readonly state
+        if (restoreBtn) restoreBtn.style.display = 'inline-flex';
+        
+        showToast('已解锁，请谨慎修改', 'warning');
+    }
+}
+
 // 处理上下文System开关变化
 function handleContextSystemChange() {
     const useContextSystem = document.getElementById('useContextSystemPrompt');
@@ -198,6 +226,27 @@ function filterSettings(query) {
     });
 }
 
+// 重新锁定官方系统提示词
+function lockOfficialSystemPrompt() {
+    const textarea = document.getElementById('officialSystemPrompt');
+    const restoreBtn = document.getElementById('restoreOfficialBtn');
+    
+    if (textarea) {
+        textarea.readOnly = true;
+        textarea.classList.remove('unlocked');
+        // 清除可能残留的内联样式
+        textarea.style.borderColor = '';
+        textarea.style.backgroundColor = '';
+    }
+    
+    if (restoreBtn) {
+        restoreBtn.style.display = 'none';
+    }
+    
+    // 清除暂存密码
+    unlockedPassword = null;
+}
+
 async function saveConfig(e) {
     e.preventDefault();
     const form = e.target;
@@ -272,13 +321,21 @@ async function saveConfig(e) {
     });
     
     showLoading('正在保存配置...');
+    
+    // 构建请求体
+    const payload = { env: envConfig, json: jsonConfig };
+    // 如果已解锁且有密码，带上密码用于后端验证
+    if (unlockedPassword) {
+        payload.password = unlockedPassword;
+    }
+
     try {
         const response = await authFetch('/admin/config', {
             method: 'PUT',
             headers: {
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify({ env: envConfig, json: jsonConfig })
+            body: JSON.stringify(payload)
         });
         
         const data = await response.json();
@@ -296,6 +353,8 @@ async function saveConfig(e) {
         hideLoading();
         if (data.success) {
             showToast('配置已保存', 'success');
+            // 保存成功后重新锁定
+            lockOfficialSystemPrompt();
             loadConfig();
         } else {
             showToast(data.message || '保存失败', 'error');

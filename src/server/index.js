@@ -14,6 +14,7 @@ import memoryManager from '../utils/memoryManager.js';
 import { getPublicDir, getRelativePath } from '../utils/paths.js';
 import { errorHandler } from '../utils/errors.js';
 import { getChunkPoolSize, clearChunkPool } from './stream.js';
+import ipBlockManager from '../utils/ipBlockManager.js';
 
 // 路由模块
 import adminRouter from '../routes/admin.js';
@@ -25,6 +26,26 @@ import claudeRouter from '../routes/claude.js';
 const publicDir = getPublicDir();
 
 const app = express();
+
+// 信任反向代理，以便正确获取 HTTPS 协议状态 (req.secure) 和客户端 IP
+app.set('trust proxy', true);
+
+// 初始化 IP 封禁管理器
+ipBlockManager.init();
+
+// 全局 IP 封禁检查中间件
+app.use((req, res, next) => {
+  const ip = req.ip;
+  const status = ipBlockManager.check(ip);
+  if (status.blocked) {
+    if (status.reason === 'permanent') {
+      return res.status(403).json({ error: 'Access Denied: Your IP has been permanently blocked.' });
+    }
+    const remainingMinutes = Math.ceil((status.expiresAt - Date.now()) / 60000);
+    return res.status(429).json({ error: `Access Denied: Temporarily blocked for ${remainingMinutes} minutes.` });
+  }
+  next();
+});
 
 // ==================== 内存管理 ====================
 memoryManager.start(config.server.memoryCleanupInterval);
@@ -77,6 +98,7 @@ app.use((req, res, next) => {
       const authHeader = req.headers.authorization || req.headers['x-api-key'];
       const providedKey = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : authHeader;
       if (providedKey !== apiKey) {
+        ipBlockManager.recordViolation(req.ip, 'auth_fail');
         logger.warn(`API Key 验证失败: ${req.method} ${req.path} (提供的Key: ${providedKey ? providedKey.substring(0, 10) + '...' : '无'})`);
         return res.status(401).json({ error: 'Invalid API Key' });
       }
@@ -86,6 +108,7 @@ app.use((req, res, next) => {
     if (apiKey) {
       const providedKey = req.query.key || req.headers['x-goog-api-key'];
       if (providedKey !== apiKey) {
+        ipBlockManager.recordViolation(req.ip, 'auth_fail');
         logger.warn(`API Key 验证失败: ${req.method} ${req.path} (提供的Key: ${providedKey ? providedKey.substring(0, 10) + '...' : '无'})`);
         return res.status(401).json({ error: 'Invalid API Key' });
       }
@@ -124,6 +147,16 @@ app.get('/v1/memory', (req, res) => {
 // 健康检查端点
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', uptime: process.uptime() });
+});
+
+// 404 处理 (未匹配到任何路由)
+app.use((req, res, next) => {
+  // 忽略 favicon.ico 等常见浏览器的自动请求，避免误伤
+  if (req.path === '/favicon.ico') {
+    return res.status(404).end();
+  }
+  ipBlockManager.recordViolation(req.ip, '404');
+  res.status(404).json({ error: 'Not Found' });
 });
 
 // ==================== 服务器启动 ====================

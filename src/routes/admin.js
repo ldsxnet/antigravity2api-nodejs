@@ -17,10 +17,18 @@ const envPath = getEnvPath();
 
 const router = express.Router();
 
+// 禁用缓存中间件，确保管理后台数据实时性
+router.use((req, res, next) => {
+  res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+  res.set('Pragma', 'no-cache');
+  res.set('Expires', '0');
+  next();
+});
+
 // Cookie 配置
 const COOKIE_OPTIONS = {
   httpOnly: true,
-  secure: process.env.NODE_ENV === 'production',
+  // secure: process.env.NODE_ENV === 'production', // 移除静态配置，改为动态判断
   sameSite: 'strict',
   maxAge: 24 * 60 * 60 * 1000 // 24小时
 };
@@ -46,7 +54,10 @@ const cookieAuthMiddleware = (req, res, next) => {
     next();
   } catch (error) {
     // 清除无效的 Cookie
-    res.clearCookie('authToken');
+    res.clearCookie('authToken', {
+      ...COOKIE_OPTIONS,
+      secure: req.secure || process.env.NODE_ENV === 'production'
+    });
     return res.status(401).json({ error: 'Invalid token' });
   }
 };
@@ -158,19 +169,28 @@ router.post('/login', (req, res) => {
     const token = generateToken({ username, role: 'admin' });
     
     // 设置 HttpOnly Cookie
-    res.cookie('authToken', token, COOKIE_OPTIONS);
+    // 动态设置 secure: 如果通过 https 访问 (req.secure) 或在生产环境，则启用 secure
+    res.cookie('authToken', token, {
+      ...COOKIE_OPTIONS,
+      secure: req.secure || process.env.NODE_ENV === 'production'
+    });
     
     // 同时返回 token（兼容旧版本前端）
+    logger.info(`管理员登录成功 IP: ${clientIP}`);
     res.json({ success: true, token });
   } else {
     recordLoginAttempt(clientIP, false);
+    logger.warn(`管理员登录失败 IP: ${clientIP}`);
     res.status(401).json({ success: false, message: '用户名或密码错误' });
   }
 });
 
 // 登出接口
 router.post('/logout', (req, res) => {
-  res.clearCookie('authToken');
+  res.clearCookie('authToken', {
+    ...COOKIE_OPTIONS,
+    secure: req.secure || process.env.NODE_ENV === 'production'
+  });
   res.json({ success: true, message: '已登出' });
 });
 
@@ -203,6 +223,7 @@ router.post('/tokens', cookieAuthMiddleware, async (req, res) => {
   
   try {
     const result = await tokenManager.addToken(tokenData);
+    logger.info(`添加新Token: ${access_token.substring(0, 8)}...`);
     res.json(result);
   } catch (error) {
     logger.error('添加Token失败:', error.message);
@@ -221,6 +242,7 @@ router.put('/tokens/:tokenId', cookieAuthMiddleware, async (req, res) => {
   
   try {
     const result = await tokenManager.updateTokenById(tokenId, updates);
+    logger.info(`更新Token: ${tokenId}`);
     res.json(result);
   } catch (error) {
     logger.error('更新Token失败:', error.message);
@@ -232,6 +254,7 @@ router.delete('/tokens/:tokenId', cookieAuthMiddleware, async (req, res) => {
   const { tokenId } = req.params;
   try {
     const result = await tokenManager.deleteTokenById(tokenId);
+    logger.info(`删除Token: ${tokenId}`);
     res.json(result);
   } catch (error) {
     logger.error('删除Token失败:', error.message);
@@ -242,6 +265,7 @@ router.delete('/tokens/:tokenId', cookieAuthMiddleware, async (req, res) => {
 router.post('/tokens/reload', cookieAuthMiddleware, async (req, res) => {
   try {
     await tokenManager.reload();
+    logger.info('手动触发Token热重载');
     res.json({ success: true, message: 'Token已热重载' });
   } catch (error) {
     logger.error('热重载失败:', error.message);
@@ -254,6 +278,7 @@ router.post('/tokens/:tokenId/refresh', cookieAuthMiddleware, async (req, res) =
   const { tokenId } = req.params;
   try {
     const result = await tokenManager.refreshTokenById(tokenId);
+    logger.info(`手动刷新Token: ${tokenId}`);
     res.json({ success: true, message: 'Token刷新成功', data: result });
   } catch (error) {
     logger.error('刷新Token失败:', error.message);
@@ -274,6 +299,7 @@ router.post('/tokens/export', cookieAuthMiddleware, async (req, res) => {
     const allTokens = await tokenManager.store.readAll();
     
     // 导出格式：包含完整的 token 数据
+    logger.info('导出所有Token数据');
     const exportData = {
       version: 1,
       exportTime: new Date().toISOString(),
@@ -398,6 +424,7 @@ router.post('/tokens/import', cookieAuthMiddleware, async (req, res) => {
     
     await tokenManager.reload();
     
+    logger.info(`导入Token: 新增 ${addedCount}, 更新 ${updatedCount}, 跳过 ${skippedCount}`);
     res.json({
       success: true,
       message: `导入完成：新增 ${addedCount} 个，更新 ${updatedCount} 个，跳过 ${skippedCount} 个`,
@@ -443,7 +470,22 @@ router.get('/config', cookieAuthMiddleware, (req, res) => {
 // 更新配置
 router.put('/config', cookieAuthMiddleware, (req, res) => {
   try {
-    const { env: envUpdates, json: jsonUpdates } = req.body;
+    const { env: envUpdates, json: jsonUpdates, password } = req.body;
+    
+    // 安全检查：如果修改了官方系统提示词，必须验证密码
+    if (envUpdates && envUpdates.OFFICIAL_SYSTEM_PROMPT !== undefined) {
+      const currentEnv = parseEnvFile(envPath);
+      // 只有当值真正改变时才检查
+      if (envUpdates.OFFICIAL_SYSTEM_PROMPT !== currentEnv.OFFICIAL_SYSTEM_PROMPT) {
+        if (!password || !verifyPassword(password)) {
+          logger.warn(`尝试修改官方系统提示词但密码验证失败 IP: ${getClientIP(req)}`);
+          return res.status(403).json({
+            success: false,
+            message: '修改官方系统提示词需要验证管理员密码'
+          });
+        }
+      }
+    }
     
     if (envUpdates) updateEnvFile(envPath, envUpdates);
     if (jsonUpdates) saveConfigJson(deepMerge(getConfigJson(), jsonUpdates));
@@ -454,7 +496,7 @@ router.put('/config', cookieAuthMiddleware, (req, res) => {
     // 应用可热更新的运行时配置
     memoryManager.setCleanupInterval(config.server.memoryCleanupInterval);
     
-    logger.info('配置已更新并热重载');
+    logger.info('系统配置已更新并热重载');
     res.json({ success: true, message: '配置已保存并生效（端口/HOST修改需重启）' });
   } catch (error) {
     logger.error('更新配置失败:', error.message);

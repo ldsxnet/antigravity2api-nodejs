@@ -353,12 +353,18 @@ html.tab-logs .tab[data-tab="logs"] {
                                     </div>
                                 </div>
                                      <div class="form-group compact">
-                                         <label>反代系统提示词 <span class="restore-default" onclick="restoreDefaultSystemInstruction()" title="恢复默认">↻</span></label>
+                                         <label>反代系统提示词 <span class="restore-default" onclick="restoreDefaultSystemInstruction()" title="恢复默认">↻ 恢复默认</span></label>
                                          <textarea name="SYSTEM_INSTRUCTION" rows="3" placeholder="反代系统提示词（留空则不使用）"></textarea>
                                      </div>
                                      <div class="form-group compact">
-                                         <label>官方系统提示词 <span class="help-tip" data-tooltip="反重力官方要求的系统提示词">?</span> <span class="restore-default" onclick="restoreDefaultOfficialSystemPrompt()" title="恢复默认">↻</span></label>
-                                         <textarea name="OFFICIAL_SYSTEM_PROMPT" rows="5" placeholder="官方系统提示词（留空则不使用）"></textarea>
+                                         <label>
+                                             官方系统提示词 <span class="help-tip" data-tooltip="反重力官方要求的系统提示词">?</span>
+                                             <span class="restore-default" onclick="restoreDefaultOfficialSystemPrompt()" title="恢复默认" id="restoreOfficialBtn" style="display:none;">↻ 恢复默认</span>
+                                         </label>
+                                         <div class="textarea-wrapper">
+                                             <textarea name="OFFICIAL_SYSTEM_PROMPT" id="officialSystemPrompt" rows="5" placeholder="官方系统提示词（留空则不使用）" readonly></textarea>
+                                             <div class="textarea-lock-btn" id="unlockOfficialBtn" onclick="unlockOfficialSystemPrompt()" title="点击解锁修改">🔒</div>
+                                         </div>
                                      </div>
                                     </div>
 
